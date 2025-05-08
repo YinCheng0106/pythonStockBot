@@ -1,0 +1,2 @@
+# pythonStockBot
+End-term project
