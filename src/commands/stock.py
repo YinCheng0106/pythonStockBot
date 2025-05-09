@@ -23,8 +23,21 @@ class Stock(commands.Cog):
     @app_commands.command(name="stock", description="searches for a stock")
     @app_commands.describe(symbol="The stock to search for")
     async def stock(self, interaction: discord.Interaction, symbol: str):
-        apple = yf.Ticker(symbol)
-        data = apple.history(period="3mo")
+        try:
+            if not symbol.isalpha():
+                await interaction.response.send_message("請輸入有效的股票代碼。", ephemeral=True)
+                return
+
+            stock = yf.Ticker(symbol)
+            data = stock.history(period="1mo")
+            if data.empty:
+                await interaction.response.send_message("股票數據下載失敗或沒有數據。", ephemeral=True)
+                return
+        except Exception as e:
+            await interaction.response.send_message(f"發生錯誤: {str(e)}", ephemeral=True)
+            return
+        stock = yf.Ticker(symbol)
+        data = stock.history(period="1mo")
         price = data['Close'].iloc[-1]
         if data.empty:
             await interaction.response.send_message("股票數據下載失敗或沒有數據。", ephemeral=True)
@@ -41,8 +54,8 @@ class Stock(commands.Cog):
         file = discord.File(buf, filename=f"{symbol}_chart.png")
 
         stock_embed = discord.Embed(
-            title=f"{symbol} stock data",
-            description=f"Price: {price:.2f}",
+            title=f"{symbol} 股票資訊",
+            description=f"價格: {price:.2f}",
             color=discord.Color.blue()
         )
         stock_embed.set_image(url=f"attachment://{symbol}_chart.png")
