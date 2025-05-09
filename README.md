@@ -2,7 +2,7 @@
 End-term project
 
 ## Commands
-- `/stock symbol:[symbol]`：查詢[symbol]股票資訊
+- `/stock symbol:[symbol]`：查詢 **[symbol]** 股票資訊
 
 ## Projects
 - [discord.py](https://pypi.org/project/discord.py/) `2.5.2`

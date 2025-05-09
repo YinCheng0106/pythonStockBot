@@ -45,12 +45,10 @@ class Stock(commands.Cog):
     
         price = data['Close'].iloc[-1]
         
-        # 將圖表畫到 BytesIO 中
         buf = BytesIO()
         mpf.plot(data, type='candle', style='charles', title=symbol, volume=True, savefig=dict(fname=buf, dpi=100, bbox_inches='tight'))
-        buf.seek(0)  # 回到檔案開頭位置
+        buf.seek(0)
 
-        # 建立 Discord 檔案物件
         file = discord.File(buf, filename=f"{symbol}_chart.png")
 
         stock_embed = discord.Embed(
@@ -62,7 +60,8 @@ class Stock(commands.Cog):
 
         await interaction.response.send_message(
             embed=stock_embed,
-            file=file
+            file=file,
+            ephemeral=True
         )
         
 
