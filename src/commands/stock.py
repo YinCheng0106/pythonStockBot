@@ -21,10 +21,10 @@ class Stock(commands.Cog):
         )
 
     @app_commands.command(name="stock", description="searches for a stock")
-    @app_commands.describe(no="The stock to search for")
-    async def stock(self, interaction: discord.Interaction, no: str):
-        apple = yf.Ticker(no)
-        data = apple.history(period="1mo")
+    @app_commands.describe(symbol="The stock to search for")
+    async def stock(self, interaction: discord.Interaction, symbol: str):
+        apple = yf.Ticker(symbol)
+        data = apple.history(period="3mo")
         price = data['Close'].iloc[-1]
         if data.empty:
             await interaction.response.send_message("股票數據下載失敗或沒有數據。", ephemeral=True)
@@ -34,18 +34,18 @@ class Stock(commands.Cog):
         
         # 將圖表畫到 BytesIO 中
         buf = BytesIO()
-        mpf.plot(data, type='candle', style='charles', title=no, volume=True, savefig=dict(fname=buf, dpi=100, bbox_inches='tight'))
+        mpf.plot(data, type='candle', style='charles', title=symbol, volume=True, savefig=dict(fname=buf, dpi=100, bbox_inches='tight'))
         buf.seek(0)  # 回到檔案開頭位置
 
         # 建立 Discord 檔案物件
-        file = discord.File(buf, filename=f"{no}_chart.png")
+        file = discord.File(buf, filename=f"{symbol}_chart.png")
 
         stock_embed = discord.Embed(
-            title=f"{no} stock data",
+            title=f"{symbol} stock data",
             description=f"Price: {price:.2f}",
             color=discord.Color.blue()
         )
-        stock_embed.set_image(url=f"attachment://{no}_chart.png")
+        stock_embed.set_image(url=f"attachment://{symbol}_chart.png")
 
         await interaction.response.send_message(
             embed=stock_embed,
