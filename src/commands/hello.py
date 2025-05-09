@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
-class Command(commands.Cog):
+class Hello(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
 
@@ -14,4 +14,4 @@ class Command(commands.Cog):
         )
 
 async def setup(client: commands.Bot):
-    await client.add_cog(Command(client))
+    await client.add_cog(Hello(client))
