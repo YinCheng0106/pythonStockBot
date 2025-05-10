@@ -10,49 +10,77 @@ class Stock(commands.Cog):
         self.client = client
 
     @app_commands.command(name="stock", description="searches for a stock")
-    @app_commands.describe(symbol="The stock to search for")
-    async def stock(self, interaction: discord.Interaction, symbol: str):
+    @app_commands.describe(symbol="股票代碼", period="時間範圍")
+    @app_commands.choices(period=[
+        app_commands.Choice(name="1日", value="1d"),
+        app_commands.Choice(name="5日", value="5d"),
+        app_commands.Choice(name="1個月", value="1mo"),
+        app_commands.Choice(name="3個月", value="3mo"),
+        app_commands.Choice(name="6個月", value="6mo"),
+        app_commands.Choice(name="1年", value="1y"),
+        app_commands.Choice(name="2年", value="2y"),
+        app_commands.Choice(name="5年", value="5y"),
+        app_commands.Choice(name="10年", value="10y"),
+        app_commands.Choice(name="整年度", value="ytd"),
+        app_commands.Choice(name="最久", value="max")
+    ])
+    async def stock(self, interaction: discord.Interaction, symbol: str, period: str):
         await interaction.response.defer(ephemeral=True)
         stock = yf.Ticker(symbol)
-        if(stock.info['quoteType'] == 'NONE'):
-            await interaction.followup.send(
-                "## 股票代碼錯誤或不存在",
-                ephemeral=True
-            )
-        else:
-            data = stock.history(period="1mo")
-            price = data['Close'].iloc[-1]
-
-            if data.empty:
+        try:
+            if(stock.info['quoteType'] == 'NONE'):
                 await interaction.followup.send(
-                    "## 股票數據下載失敗或沒有數據",
+                    "## 股票代碼錯誤或不存在",
                     ephemeral=True
                 )
-                return
+            else:
+                data = stock.history(period=f"{period}")
+                price = data['Close'].iloc[-1]
+                name = stock.info['longName']
+                open_price = data['Open'].iloc[0]
+                high_price = data['High'].max()
+                low_price = data['Low'].min()
+                type = stock.info['quoteType']
+
+                if data.empty:
+                    await interaction.followup.send(
+                        "## 股票數據下載失敗或沒有數據",
+                        ephemeral=True
+                    )
+                    return
         
-            price = data['Close'].iloc[-1]
-            
-            buf = BytesIO()
-            mpf.plot(data, type='candle', style='charles', title=symbol, volume=True, savefig=dict(fname=buf, dpi=100, bbox_inches='tight'))
-            buf.seek(0)
+                buf = BytesIO()
+                mpf.plot(data, type='candle', style='charles', title=symbol, volume=True, savefig=dict(fname=buf, dpi=100, bbox_inches='tight'))
+                buf.seek(0)
 
-            file = discord.File(buf, filename=f"{symbol}_chart.png")
+                file = discord.File(buf, filename=f"{symbol}_chart.png")
 
-            stock_embed = discord.Embed(
-                title=f"{symbol}",
-                description=f"價格: {price:.2f}",
-                color=discord.Color.blue()
-            )
-            stock_embed.set_image(url=f"attachment://{symbol}_chart.png")
-            stock_embed.set_footer(text="數據來源: Yahoo Finance")
-            stock_embed.set_author(name="股票查詢", url="https://tw.stock.yahoo.com")
+                stock_embed = discord.Embed(
+                    title=f"{name} ({symbol})",
+                    description=f"貨幣：{stock.info['currency']}",
+                    color=discord.Color.blue()
+                )
+                stock_embed.set_image(url=f"attachment://{symbol}_chart.png")
+                stock_embed.set_footer(text="數據來源: Yahoo Finance")
+                stock_embed.set_author(name="股票查詢", url="https://tw.stock.yahoo.com")
+                stock_embed.add_field(name="開盤價", value=f"{open_price:.2f}", inline=True)
+                stock_embed.add_field(name="最高價", value=f"{high_price:.2f}", inline=True)
+                stock_embed.add_field(name="最低價", value=f"{low_price:.2f}", inline=True)
+                stock_embed.add_field(name="當前價格", value=f"{price:.2f}", inline=True)
+                stock_embed.add_field(name="變化幅度", value=f"{((price - open_price) / open_price) * 100:.2f}%", inline=True)
+                stock_embed.add_field(name="股票類型", value=f"{type}", inline=True)
 
+                await interaction.followup.send(
+                    embed=stock_embed,
+                    file=file,
+                    ephemeral=True
+                )
+        except Exception as e:
             await interaction.followup.send(
-                embed=stock_embed,
-                file=file,
+                "## 股票數據下載失敗或沒有數據",
                 ephemeral=True
             )
-        
+            print(f"Error fetching stock data: {e}")
 
 async def setup(client: commands.Bot):
     await client.add_cog(Stock(client))
